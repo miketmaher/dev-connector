@@ -125,7 +125,7 @@ router.post(
 
 /**
  * @route  GET /profile/
- * @desc   get all profile
+ * @desc   get all profiles
  * @access PUBLIC
  **/
 
@@ -141,7 +141,7 @@ router.get('/', async (req, res) => {
 
 /**
  * @route  GET /profile/user/:id
- * @desc   get all profile
+ * @desc   get profile by user's id
  * @access PUBLIC
  **/
 
@@ -154,6 +154,30 @@ router.get('/user/:id', async (req, res) => {
       return res.status(400).json({ msg: 'Profile not found' });
     }
     res.json(profile);
+  } catch (err) {
+    console.error(err.message);
+    if (err.kind === 'ObjectId') {
+      return res.status(400).json({ msg: 'Profile not found' });
+    }
+    res.status(500).send('Internal server error');
+  }
+});
+
+/**
+ * @route  DELETE /profile
+ * @desc   delete profile, user and posts
+ * @access PRIVATE
+ **/
+
+router.delete('/', auth, async (req, res) => {
+  try {
+    await Profile.findOneAndDelete({
+      user: req.user.id,
+    });
+    await User.findOneAndDelete({
+      _id: req.user.id,
+    });
+    res.json({ msg: 'User removed' });
   } catch (err) {
     console.error(err.message);
     if (err.kind === 'ObjectId') {
