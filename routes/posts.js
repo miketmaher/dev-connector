@@ -172,4 +172,85 @@ router.put('/unlike/:id', auth, async (req, res) => {
   }
 });
 
+/**
+ * @route  POST /posts/comment/:id
+ * @desc   add a comment to a post
+ * @access PRIVATE
+ **/
+
+router.post(
+  '/comment/:id',
+  [
+    auth,
+    check('text', 'Text is required')
+      .not()
+      .isEmpty(),
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      res.status(400).json({ errors: errors.array() });
+    }
+
+    try {
+      const post = await Post.findById(req.params.id);
+      if (!post) {
+        res.status(404).json({ msg: 'Post not found' });
+      }
+      const user = await User.findById(req.user.id).select('-password');
+      const { name, avatar } = user;
+      const newComment = {
+        text: req.body.text,
+        user: req.user.id,
+        name,
+        avatar,
+      };
+      post.comments.unshift(newComment);
+      await post.save();
+      res.json(post.comments);
+    } catch (err) {
+      console.error(err.message);
+      if (err.kind === 'ObjectId') {
+        res.status(404).json({ msg: 'Post not found' });
+      }
+      res.status(500).send('Internal server error');
+    }
+  },
+);
+
+/**
+ * @route  DELETE /posts/comment/:id/:comment:id
+ * @desc   delete a comment from a post
+ * @access PRIVATE
+ **/
+router.delete('/comment/:id/:comment_id', auth, async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.id);
+    if (!post) {
+      res.status(404).json({ msg: 'Post not found' });
+    }
+    const comment = post.comments.find(
+      comment => comment.id === req.params.comment_id,
+    );
+    if (!comment) {
+      res.status(404).json({ msg: 'Comment not found' });
+    }
+    if (comment.user.toString() !== req.user.id) {
+      res.status(401).json({ msg: 'User not authorized' });
+    }
+    const index = post.comments
+      .map(comment => comment.user.toString())
+      .indexOf(req.user.id);
+    post.comments.splice(index, 1);
+    await post.save();
+    res.json(post.comments);
+  } catch (err) {
+    console.error(err.message);
+    if (err.kind === 'ObjectId') {
+      res.status(404).json({ msg: 'Post not found' });
+    }
+    res.status(500).send('Internal server error');
+  }
+});
+
 module.exports = router;
