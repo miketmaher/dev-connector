@@ -1,11 +1,12 @@
 import React, { Fragment, useState } from 'react';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { setAlert } from '../../redux/actions/alertActions';
 import { registerUser } from '../../redux/actions/authActions';
-import { Link } from 'react-router-dom';
+import { Link, Redirect } from 'react-router-dom';
 
 const Register = () => {
   const dispatch = useDispatch();
+  const isAuthenticated = useSelector(state => state.auth.isAuthenticated);
   const [newUser, setNewUser] = useState({
     name: '',
     email: '',
@@ -32,6 +33,10 @@ const Register = () => {
       );
     }
   };
+
+  if (isAuthenticated) {
+    return <Redirect to="/dashboard" />;
+  }
 
   return (
     <Fragment>
